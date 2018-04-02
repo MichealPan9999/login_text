@@ -2,6 +2,11 @@ package com.pan.login;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -13,7 +18,15 @@ public class LoginServlet extends HttpServlet {
 
 	/**
 	 * Constructor of the object.
-	 */
+	 * */
+	private static final long serialVersionUID = 1L;
+	// JDBC 驱动名及数据库 URL
+	static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
+	static final String DB_URL = "jdbc:mysql://localhost:3306/login";
+	// 数据库的用户名与密码，需要根据自己的设置
+	static final String USER = "root";
+	static final String PASS = "";
+
 	public LoginServlet() {
 		super();
 	}
@@ -42,27 +55,59 @@ public class LoginServlet extends HttpServlet {
 	 */
 	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
+		Connection conn = null;
+		Statement stmt = null;
 		// doGet(request, response);
 		// 设置编码为utf-8
 		request.setCharacterEncoding("utf-8");
 		response.setCharacterEncoding("utf-8");
 		response.setContentType("text/html; charset=utf-8");
 		PrintWriter out = response.getWriter();
-
 		// 获取用户名和密码
 		String name = request.getParameter("name");
 		String pwd = request.getParameter("pwd");
+		boolean matchFlag = false;
 		System.out.println("name = " + name + " , pwd = " + pwd);
-		// 校验用户名和密码是否正确
-		if ("admin".equals(name) && "123".equals(pwd)) {// 验证成功
-			HttpSession session = request.getSession();// 获取session
-			session.setAttribute("name", name);// 将用户名和密码保存在session中
-			session.setAttribute("pwd", pwd);// 将用户名和密码保存在session中
-			out.println("success");
+		try {
+			// 注册 JDBC 驱动器
+			Class.forName(JDBC_DRIVER);
+			// 打开一个连接
+			conn = DriverManager.getConnection(DB_URL, USER, PASS);
+			// 执行 SQL 查询
+			stmt = conn.createStatement();
+			String sql;
+			sql = "SELECT name, pwd FROM user";
+			ResultSet rs = stmt.executeQuery(sql);
 
-			// response.sendRedirect("success.jsp");// 跳转到success.jsp页面
+			// 展开结果集数据库
+			while (rs.next()) {
+				// 通过字段检索
+				String dbName = rs.getString("name");
+				String dbPwd = rs.getString("pwd");
+				if(dbName.equals(name)&&dbPwd.equals(pwd))
+				{
+					HttpSession session = request.getSession();// 获取session
+					session.setAttribute("name", name);// 将用户名和密码保存在session中
+					session.setAttribute("pwd", pwd);// 将用户名和密码保存在session中
+					matchFlag = true;
+					break;
+				}else
+				{
+					matchFlag = false;
+				}
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			System.out.println("ClassNotFoundException!!!");
+			e.printStackTrace();
+		} 
+		// 校验用户名和密码是否正确
+		if (matchFlag) {// 验证成功
+			out.println("success");
 		} else {// 校验不成功，则留在跳转到login.jsp页面
-			// response.sendRedirect("login.jsp");
 			out.println("fail");
 		}
 	}
