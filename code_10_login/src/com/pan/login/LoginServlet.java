@@ -66,8 +66,10 @@ public class LoginServlet extends HttpServlet {
 		// 获取用户名和密码
 		String name = request.getParameter("name");
 		String pwd = request.getParameter("pwd");
+		String type = request.getParameter("type");
 		boolean matchFlag = false;
-		System.out.println("name = " + name + " , pwd = " + pwd);
+		System.out.println("name = " + name + " , pwd = " + pwd + " , type = "
+				+ type);
 		try {
 			// 注册 JDBC 驱动器
 			Class.forName(JDBC_DRIVER);
@@ -76,24 +78,56 @@ public class LoginServlet extends HttpServlet {
 			// 执行 SQL 查询
 			stmt = conn.createStatement();
 			String sql;
-			sql = "SELECT name, pwd FROM user";
-			ResultSet rs = stmt.executeQuery(sql);
+			if (Integer.parseInt(type) == 0) {
+				sql = "SELECT name, pwd FROM user";
+				ResultSet rsquery = stmt.executeQuery(sql);
+				// 展开结果集数据库
+				while (rsquery.next()) {
+					// 通过字段检索
+					String dbName = rsquery.getString("name");
+					if (dbName.equals(name)) {
+						matchFlag = true;
+						break;
+					}else{
+						matchFlag = false;
+					}
+				}
+				int rs = -1;
+				if (!matchFlag) {
+					sql = "INSERT INTO user (name , pwd) VALUES(\'" + name + "\',\'" + pwd
+							+ "\')";
+					rs = stmt.executeUpdate(sql);
+				}
+				System.out.println("insert into value  rs = "+rs);
+				if (rs>0) {
+					out.println("success");
+				}else{
+					out.println("fail");
+				}
+			} else {
+				sql = "SELECT name, pwd FROM user";
+				ResultSet rs = stmt.executeQuery(sql);
 
-			// 展开结果集数据库
-			while (rs.next()) {
-				// 通过字段检索
-				String dbName = rs.getString("name");
-				String dbPwd = rs.getString("pwd");
-				if(dbName.equals(name)&&dbPwd.equals(pwd))
-				{
-					HttpSession session = request.getSession();// 获取session
-					session.setAttribute("name", name);// 将用户名和密码保存在session中
-					session.setAttribute("pwd", pwd);// 将用户名和密码保存在session中
-					matchFlag = true;
-					break;
-				}else
-				{
-					matchFlag = false;
+				// 展开结果集数据库
+				while (rs.next()) {
+					// 通过字段检索
+					String dbName = rs.getString("name");
+					String dbPwd = rs.getString("pwd");
+					if (dbName.equals(name) && dbPwd.equals(pwd)) {
+						HttpSession session = request.getSession();// 获取session
+						session.setAttribute("name", name);// 将用户名和密码保存在session中
+						session.setAttribute("pwd", pwd);// 将用户名和密码保存在session中
+						matchFlag = true;
+						break;
+					} else {
+						matchFlag = false;
+					}
+				}
+				// 校验用户名和密码是否正确
+				if (matchFlag) {// 验证成功
+					out.println("success");
+				} else {// 校验不成功，则留在跳转到login.jsp页面
+					out.println("fail");
 				}
 			}
 		} catch (SQLException e) {
@@ -103,12 +137,6 @@ public class LoginServlet extends HttpServlet {
 			// TODO Auto-generated catch block
 			System.out.println("ClassNotFoundException!!!");
 			e.printStackTrace();
-		} 
-		// 校验用户名和密码是否正确
-		if (matchFlag) {// 验证成功
-			out.println("success");
-		} else {// 校验不成功，则留在跳转到login.jsp页面
-			out.println("fail");
 		}
 	}
 
