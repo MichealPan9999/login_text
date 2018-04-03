@@ -33,9 +33,13 @@ public class LoginActivity extends Activity implements OnClickListener {
     EditText et_userName;
     EditText et_password;
     Button bt_Login;
+    Button bt_Register;
     Context mContext;
     private static final String URL = "http://10.0.3.2:8080/code_10_login/LoginServlet";
     private String mResult = "";
+    private static final int REGISTER = 0;
+    private static final int LOGIN = 1;
+    private int type = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,21 +50,27 @@ public class LoginActivity extends Activity implements OnClickListener {
         et_password = (EditText) findViewById(R.id.et_password);
         bt_Login = (Button) findViewById(R.id.bt_login);
         bt_Login.setOnClickListener(this);
+        bt_Register = (Button) findViewById(R.id.bt_register);
+        bt_Register.setOnClickListener(this);
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.bt_login:
-                login(et_userName.getText().toString(), et_password.getText().toString());
+                login(et_userName.getText().toString(), et_password.getText().toString(),LOGIN);
+                break;
+            case R.id.bt_register:
+                login(et_userName.getText().toString(), et_password.getText().toString(),REGISTER);
                 break;
 
         }
     }
 
-    private void login(String username, String password) {
+    private void login(String username, String password,int type) {
         if (valid(username, password)) {
-            getHttpgetResult(URL,username,password);
+            this.type = type;
+            getHttpgetResult(URL,username,password,type);
         } else {
         }
     }
@@ -76,11 +86,11 @@ public class LoginActivity extends Activity implements OnClickListener {
         return true;
     }
 
-    private String getHttpgetResult(String url, String name, String pwd) {
+    private String getHttpgetResult(String url, String name, String pwd,int type) {
 
         //new SendHttpTask().execute(url,name,pwd);
         //new MyGETTask().execute(url,name,pwd);
-        new MyPostTask().execute(url,name,pwd);
+        new MyPostTask().execute(url,name,pwd,String.valueOf(type));
         return mResult;
     }
 
@@ -103,8 +113,10 @@ public class LoginActivity extends Activity implements OnClickListener {
                 Log.d("panzqww","params[0] = "+params[0]);
                 Log.d("panzqww","params[1] = "+params[1]);
                 Log.d("panzqww","params[2] = "+params[2]);
+                Log.d("panzqww","params[3] = "+params[3]);
                 paramsValue.add(new BasicNameValuePair("name", params[1]));
                 paramsValue.add(new BasicNameValuePair("pwd", params[2]));
+                paramsValue.add(new BasicNameValuePair("type", params[3]));
                 post.setEntity(new UrlEncodedFormEntity(paramsValue,"UTF-8"));
                 HttpResponse response = client.execute(post);
                 if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
@@ -151,10 +163,20 @@ public class LoginActivity extends Activity implements OnClickListener {
             mResult = result;
             if (mResult.contains("success"))
             {
-                Toast.makeText(mContext, "登录成功！", Toast.LENGTH_SHORT).show();
+                if (type == LOGIN) {
+                    Toast.makeText(mContext, "登录成功！", Toast.LENGTH_SHORT).show();
+                }else if(type == REGISTER)
+                {
+                    Toast.makeText(mContext, "注册成功！", Toast.LENGTH_SHORT).show();
+                }
             }else
             {
-                Toast.makeText(mContext, "登录失败！", Toast.LENGTH_SHORT).show();
+                if (type == LOGIN) {
+                    Toast.makeText(mContext, "登录失败！", Toast.LENGTH_SHORT).show();
+                }else if(type == REGISTER)
+                {
+                    Toast.makeText(mContext, "注册失败，该用户名已被注册！", Toast.LENGTH_SHORT).show();
+                }
             }
         }
 
