@@ -93,3 +93,9 @@ mysql> select * from user;
 			System.out.println("ClassNotFoundException!!!");
 			e.printStackTrace();
 		} 
+		
+		
+切记：实现插入数据，这里输入的字符一定要大'',用代码表示成 "\'"
+sql = "INSERT INTO user (name , pwd) VALUES(\'" + name + "\',\'" + pwd
+							+ "\')";
+					rs = stmt.executeUpdate(sql);
