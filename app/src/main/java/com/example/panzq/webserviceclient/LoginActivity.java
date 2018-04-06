@@ -22,6 +22,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -36,7 +38,6 @@ public class LoginActivity extends Activity implements OnClickListener {
     Button bt_Register;
     Context mContext;
     private static final String URL = "http://10.0.3.2:8080/code_10_login/LoginServlet";
-    private String mResult = "";
     private static final int REGISTER = 0;
     private static final int LOGIN = 1;
     private int type = -1;
@@ -86,15 +87,14 @@ public class LoginActivity extends Activity implements OnClickListener {
         return true;
     }
 
-    private String getHttpgetResult(String url, String name, String pwd,int type) {
+    private void getHttpgetResult(String url, String name, String pwd,int type) {
 
         //new SendHttpTask().execute(url,name,pwd);
         //new MyGETTask().execute(url,name,pwd);
         new MyPostTask().execute(url,name,pwd,String.valueOf(type));
-        return mResult;
     }
 
-    private class MyPostTask extends AsyncTask<String, Integer, String> {
+    private class MyPostTask extends AsyncTask<String, Integer, JSONObject> {
         //onPreExecute方法用于在执行后台任务前做一些UI操作
         String result = "";
         @Override
@@ -104,7 +104,7 @@ public class LoginActivity extends Activity implements OnClickListener {
 
         //doInBackground方法内部执行后台任务,不可在此方法内修改UI
         @Override
-        protected String doInBackground(String... params) {
+        protected JSONObject doInBackground(String... params) {
             Log.i("panzqww", "doInBackground(Params... params) called");
             try {
                 HttpClient client = new DefaultHttpClient();
@@ -136,7 +136,11 @@ public class LoginActivity extends Activity implements OnClickListener {
                         Thread.sleep(500);
                     }
                     result = new String(baos.toByteArray(), "utf-8");
-                    return result;
+                    if (TextUtils.isEmpty(result))
+                    {
+                        return null;
+                    }
+                    return new JSONObject(result);
                 }
             } catch (Exception e) {
                 Log.e("panzqww", e.getMessage());
@@ -153,30 +157,33 @@ public class LoginActivity extends Activity implements OnClickListener {
 
         //onPostExecute方法用于在执行完后台任务后更新UI,显示结果
         @Override
-        protected void onPostExecute(String result) {
-            if (TextUtils.isEmpty(result))
+        protected void onPostExecute(JSONObject result) {
+            if (result == null)
             {
                 Toast.makeText(mContext, "服务器访问失败，服务器未正常启动！", Toast.LENGTH_SHORT).show();
                 return;
             }
-            Log.i("panzq", "onPostExecute(Result result) called mResult = "+result);
-            mResult = result;
-            if (mResult.contains("success"))
-            {
-                if (type == LOGIN) {
-                    Toast.makeText(mContext, "登录成功！", Toast.LENGTH_SHORT).show();
-                }else if(type == REGISTER)
-                {
-                    Toast.makeText(mContext, "注册成功！", Toast.LENGTH_SHORT).show();
+            String type = "";
+            boolean flag = false;
+            try {
+                type = (String) result.get("type");
+                flag = result.getBoolean("result");
+                if (flag) {
+                    if (Integer.valueOf(type) == LOGIN) {
+                        Toast.makeText(mContext, " 登录成功, " + "欢迎" + result.get("name"), Toast.LENGTH_SHORT).show();
+                    } else if (Integer.valueOf(type) == REGISTER) {
+                        Toast.makeText(mContext, "注册成功，" + result.get("name") + "您可以登录啦,have fun!", Toast.LENGTH_SHORT).show();
+                    }
+                }else{
+                    if (Integer.valueOf(type) == LOGIN) {
+                        Toast.makeText(mContext, "登录失败！", Toast.LENGTH_SHORT).show();
+                    }else if(Integer.valueOf(type) == REGISTER)
+                    {
+                        Toast.makeText(mContext, "注册失败，该用户名已被注册！", Toast.LENGTH_SHORT).show();
+                    }
                 }
-            }else
-            {
-                if (type == LOGIN) {
-                    Toast.makeText(mContext, "登录失败！", Toast.LENGTH_SHORT).show();
-                }else if(type == REGISTER)
-                {
-                    Toast.makeText(mContext, "注册失败，该用户名已被注册！", Toast.LENGTH_SHORT).show();
-                }
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
         }
 
@@ -187,7 +194,7 @@ public class LoginActivity extends Activity implements OnClickListener {
             //progressBar.setProgress(0);
         }
     }
-    private class MyGETTask extends AsyncTask<String, Integer, String> {
+    private class MyGETTask extends AsyncTask<String, Integer, JSONObject> {
         //onPreExecute方法用于在执行后台任务前做一些UI操作
         @Override
         protected void onPreExecute() {
@@ -196,7 +203,7 @@ public class LoginActivity extends Activity implements OnClickListener {
 
         //doInBackground方法内部执行后台任务,不可在此方法内修改UI
         @Override
-        protected String doInBackground(String... params) {
+        protected JSONObject doInBackground(String... params) {
             Log.i("panzqww", "doInBackground(Params... params) called");
             try {
                 HttpClient client = new DefaultHttpClient();
@@ -221,7 +228,8 @@ public class LoginActivity extends Activity implements OnClickListener {
                         //为了演示进度,休眠500毫秒
                         Thread.sleep(500);
                     }
-                    return new String(baos.toByteArray(), "utf-8");
+                    String result = new String(baos.toByteArray(), "utf-8");
+                    return new JSONObject(result);
                 }
             } catch (Exception e) {
                 Log.e("panzqww", e.getMessage());
@@ -238,9 +246,8 @@ public class LoginActivity extends Activity implements OnClickListener {
 
         //onPostExecute方法用于在执行完后台任务后更新UI,显示结果
         @Override
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(JSONObject result) {
             Log.i("panzq", "onPostExecute(Result result) called result = "+result);
-            mResult = result;
         }
 
         //onCancelled方法用于在取消执行中的任务时更改UI
@@ -251,4 +258,14 @@ public class LoginActivity extends Activity implements OnClickListener {
         }
     }
 
+    private JSONObject receiveJson(String result)
+    {
+        JSONObject jsonObj = null;
+        try {
+            jsonObj = new JSONObject(result);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return jsonObj;
+    }
 }
