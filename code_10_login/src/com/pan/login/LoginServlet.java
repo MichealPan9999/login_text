@@ -14,6 +14,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import net.sf.json.JSONObject;
+
 public class LoginServlet extends HttpServlet {
 
 	/**
@@ -78,6 +80,8 @@ public class LoginServlet extends HttpServlet {
 			// 执行 SQL 查询
 			stmt = conn.createStatement();
 			String sql;
+			JSONObject jsonObject = new JSONObject();
+			jsonObject.put("type", type);
 			if (Integer.parseInt(type) == 0) {
 				sql = "SELECT name, pwd FROM user";
 				ResultSet rsquery = stmt.executeQuery(sql);
@@ -100,9 +104,9 @@ public class LoginServlet extends HttpServlet {
 				}
 				System.out.println("insert into value  rs = "+rs);
 				if (rs>0) {
-					out.println("success");
+					jsonObject.put("result", true);
 				}else{
-					out.println("fail");
+					jsonObject.put("result", false);
 				}
 			} else {
 				sql = "SELECT name, pwd FROM user";
@@ -125,11 +129,15 @@ public class LoginServlet extends HttpServlet {
 				}
 				// 校验用户名和密码是否正确
 				if (matchFlag) {// 验证成功
-					out.println("success");
+					jsonObject.put("result", true);
+					jsonObject.put("name", name);
+					//可以携带 名字、性别、年龄、兴趣、爱好等相关信息
 				} else {// 校验不成功，则留在跳转到login.jsp页面
-					out.println("fail");
+					jsonObject.put("result", false);
 				}
 			}
+			System.out.println("=========jsonObject==========="+jsonObject);
+			out.println(jsonObject);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
